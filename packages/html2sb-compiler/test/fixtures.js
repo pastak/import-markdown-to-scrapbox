@@ -27,7 +27,7 @@ test('fixtures', function (t) {
       const expectedOutput = readFixture(pageFile + '.txt');
       const sb = toScrapbox(pageTokens);
       // console.log(JSON.stringify(pageTokens, null, 2))
-      t.deepEqual(pageTokens, expectedTokens, file + '#tokens');
+      if (!process.env.IGNORE_TOKEN) t.deepEqual(pageTokens, expectedTokens, file + '#tokens');
       sb.title = guessTitle(pageTokens, sb, function (pageTokens, foundTitle, template) {
         var named = 'Untitled';
         return foundTitle || template(named) || named;

@@ -164,7 +164,8 @@ function firstChildContent (node) {
 
 function singleNode (type, context) {
   context.children.push({
-    type: type
+    type: type,
+    force: true
   });
 }
 
@@ -360,9 +361,16 @@ var tags = {
         options: context.options
       });
       if (newNode.children && newNode.children.length > 0) {
+        var children = newNode.children;
+        if (children[0].type === 'text' && children[0].text) {
+          children[0].text = children[0].text.replace(/^\n+\s{2}/, '');
+          if (children[0].text.length === 0) {
+            children = children.slice(1);
+          }
+        }
         context.children.push({
           type: 'div',
-          children: newNode.children
+          children: children
         });
       }
     }
@@ -483,7 +491,6 @@ function reduceSimpleNodes (parent) {
     if (/^\s+$/i.test(token.text)) {
       return false;
     }
-    token.text = trim(token.text);
     return true;
   });
   var allText = true;

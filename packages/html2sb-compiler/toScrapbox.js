@@ -1,10 +1,14 @@
 'use strict';
 var NO_LINE_BREAK = false;
-var SOFT_LINE_BREAK = true;
+var SOFT_LINE_BREAK = 2;
+var HARD_LINE_BREAK = 3;
 
 function toSimpleText (node) {
   if (node.type === 'list') {
     return '\n' + processList(node);
+  }
+  if (node.type === 'br') {
+    return '\n';
   }
   if (node.type === 'img') {
     var src = '';
@@ -37,7 +41,9 @@ function toSimpleText (node) {
   }
   var content;
   if (node.children) {
-    content = node.children.map(toSimpleText).filter(Boolean).join(' ');
+    content = node.children.map(toSimpleText)
+      .join('')
+      .replace(/\s\n\s/g, '\n');
   } else {
     content = node.text || '';
   }
@@ -138,14 +144,15 @@ var stringifier = {
     line.push(toSimpleText(node));
     return NO_LINE_BREAK;
   },
-  'br': function () {
-    return SOFT_LINE_BREAK;
+  'br': function (node) {
+    return node.force ? HARD_LINE_BREAK : SOFT_LINE_BREAK;
   },
   'text': function (node, line) {
     if (node.blockquote) {
       return new Array(node.blockquote + 1).join('>') + ' ' + toSimpleText(node);
     }
-    line.push(toSimpleText(node));
+    const text = toSimpleText(node);
+    line.push(text);
     return NO_LINE_BREAK;
   },
   'reference': function (node, line, resources) {
@@ -164,7 +171,6 @@ function stringifyNode (child, line, resources) {
   }
   return nodeStringifier(child, line, resources);
 }
-
 function stringifyNodes (tokens, result, resources) {
   var line = [];
   tokens.children.forEach(function (child) {
@@ -181,13 +187,17 @@ function stringifyNodes (tokens, result, resources) {
     }
     if (Array.isArray(block)) {
       result = result.concat(block);
-    } else if (block !== SOFT_LINE_BREAK) {
+    } else if (!(block === SOFT_LINE_BREAK || block === HARD_LINE_BREAK)) {
       result.push(block);
       result.push('');
     }
   });
   if (line.length > 0) {
-    result.push(line.join(' '));
+    result.push(
+      line.join(' ')
+        .replace(/ {2}/g, ' ')
+        .replace(/[\n\s]{2,}/g, ' ')
+    );
   }
   return result;
 }
@@ -213,6 +223,7 @@ function toScrapbox (tokens) {
     }
     return true;
   });
+  
   var last = result.length - 1;
   while ((result[last] === '' || result[last] === null) && last > 0) {
     last -= 1;
